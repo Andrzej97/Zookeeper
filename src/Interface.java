@@ -6,12 +6,12 @@ import java.io.InputStreamReader;
 import java.util.List;
 
 
-public class Main implements Runnable {
+public class Interface implements Runnable {
 
     private final ZooKeeper zk;
     private final DataMonitor dm;
 
-    public Main(ZooKeeper zk, DataMonitor dm) {
+    public Interface(ZooKeeper zk, DataMonitor dm) {
         this.zk = zk;
         this.dm = dm;
     }

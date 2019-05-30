@@ -22,7 +22,7 @@ public class Executor
         this.exec = exec;
         zk = new ZooKeeper(hostPort, 3000, this);
         dm = new DataMonitor(zk, null, this);
-        new Main(zk, dm).run();
+        new Interface(zk, dm).run();
     }
 
     public static void main(String[] args) {
