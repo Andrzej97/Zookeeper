@@ -21,7 +21,7 @@ public class Executor
                     String exec[]) throws KeeperException, IOException{
         this.exec = exec;
         zk = new ZooKeeper(hostPort, 3000, this);
-        dm = new DataMonitor(zk, null, this);
+        dm = new DataMonitor(zk,  this);
         new Interface(zk, dm).run();
     }
 

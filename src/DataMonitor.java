@@ -12,20 +12,18 @@ import java.util.*;
 public class DataMonitor implements Watcher, StatCallback {
 
     ZooKeeper zk;
-    Watcher newNodeWatcher;
-    Watcher chainedWatcher;
+    Watcher watcher;
     boolean dead;
     DataMonitorListener listener;
 
     private Set<String> knownNodes = new HashSet<>();
     private int previousChildrenNumber = 0;
 
-    public DataMonitor(ZooKeeper zk, Watcher chainedWatcher,
-                       DataMonitorListener listener) {
+    public DataMonitor(ZooKeeper zk, DataMonitorListener listener) {
 
-        newNodeWatcher = event -> {
-            System.out.println("DataMonitor: new event:\n\tpath:\t"
-                    + event.getPath() + "\n\ttype:\t" + event.getType());
+        watcher = event -> {
+//            System.out.println("DataMonitor: new event:\n\tpath:\t"
+//                    + event.getPath() + "\n\ttype:\t" + event.getType());
             applyNodesForNewNodeWatcher("/");
             Set<String> nodesToStalk = null;
             try {
@@ -45,9 +43,7 @@ public class DataMonitor implements Watcher, StatCallback {
                 e.printStackTrace();
             }
         };
-//        System.out.println("DataMonitor constructor: after lambda");
         this.zk = zk;
-        this.chainedWatcher = chainedWatcher;
         this.listener = listener;
         applyNodesForNewNodeWatcher("/");
 
@@ -64,11 +60,11 @@ public class DataMonitor implements Watcher, StatCallback {
 
     void applyNodesForNewNodeWatcher(String patch) {
         try {
-            zk.getChildren(patch, newNodeWatcher).forEach(c -> {
+            zk.getChildren(patch, watcher).forEach(c -> {
                 applyNodesForNewNodeWatcher((patch.equals("/") ? "/" : patch + "/") + c);
             });
 
-            zk.exists(patch, newNodeWatcher);
+            zk.exists(patch, watcher);
 
         } catch (KeeperException e) {
             e.printStackTrace();
@@ -76,17 +72,6 @@ public class DataMonitor implements Watcher, StatCallback {
             e.printStackTrace();
         }
 
-    }
-
-
-    private void findNodesAndUpdateStuff() {
-        try {
-            Set<String> nodesToStalk = findNodesToProcess("/");
-        } catch (KeeperException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
     private Set<String> findNodesToProcess(String patch) throws KeeperException, InterruptedException {
@@ -147,8 +132,8 @@ public class DataMonitor implements Watcher, StatCallback {
 
     public void process(WatchedEvent event) {
         String path = event.getPath();
-        System.out.println("DataMonitor.process(). \n\tpath:\t" +
-                path + "\n\ttype:\t" + event.getType());
+//        System.out.println("DataMonitor.process(). \n\tpath:\t" +
+//                path + "\n\ttype:\t" + event.getType());
         if (event.getType() == Event.EventType.None) {
             // We are are being told that the state of the
             // connection has changed
@@ -161,13 +146,12 @@ public class DataMonitor implements Watcher, StatCallback {
                     break;
             }
         } else {
-//            findNodesAndUpdateStuff();
             switch (event.getType()) {
                 case NodeChildrenChanged:
                     try {
                         int childrenCount = listener.countChildren("/z");
                         if (childrenCount > previousChildrenNumber)
-                            System.out.println(path + " has " + childrenCount + " children");
+                            System.out.println("/z has " + childrenCount + " children");
                         previousChildrenNumber = childrenCount;
                     } catch (Exception e) {
                         System.out.println("Children counting failed");
@@ -175,21 +159,14 @@ public class DataMonitor implements Watcher, StatCallback {
                     }
                     break;
                 case NodeCreated:
-                    //    System.out.println(path + " CREATED");
-                    //     listener.createAppInstance();
                     break;
                 case NodeDeleted:
-                    //   System.out.println(path + " DEL");
                         if(path.equals("/z"))
                             listener.deleteAppInstance();
                     break;
                 default:
                     break;
-//                }
             }
-        }
-        if (chainedWatcher != null) {
-            chainedWatcher.process(event);
         }
     }
 
